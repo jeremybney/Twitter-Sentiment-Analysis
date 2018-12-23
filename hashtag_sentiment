@@ -1,0 +1,89 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Aug 18 18:16:29 2018
+
+@author: JeremyNey
+"""
+#http://ipullrank.com/step-step-twitter-sentiment-analysis-visualizing-united-airlines-pr-crisis/
+
+import tweepy
+import pandas as pd
+import csv
+import numpy as np      # For number computing
+from textblob import TextBlob
+import re
+
+####input your credentials here
+consumer_key = 'your_consumer_key'
+consumer_secret = 'your_secret_key'
+access_token = 'your_access_token
+access_token_secret = 'your_access_token_secret'
+
+
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+api = tweepy.API(auth,wait_on_rate_limit=True)
+#####United Airlines
+
+def clean_tweet(tweet):
+    '''
+    Utility function to clean the text in a tweet by removing 
+    links and special characters using regex.
+    '''
+    return ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet).split())
+
+def analize_sentiment(tweet):
+    '''
+    Utility function to classify the polarity of a tweet
+    using textblob.
+    '''
+    analysis = TextBlob(clean_tweet(tweet))
+    if analysis.sentiment.polarity > 0:
+        return 1
+    elif analysis.sentiment.polarity == 0:
+        return 0
+    else:
+        return -1
+# Open/Create a file to append data
+csvFile = open('/Users/JeremyNey/Desktop/Web_Development/Test/utr.csv', 'a')
+csvWriter = csv.writer(csvFile)
+
+for tweet in tweepy.Cursor(api.search,q="#UnitetheRight",count=100,
+                           #result_type='popular',
+                           lang="en",
+                           since="2018-05-03").items():
+    csvWriter.writerow([tweet.created_at, tweet.text.encode('utf-8'), tweet.source.encode('utf-8'), tweet.favorite_count, tweet.retweet_count, tweet.coordinates])
+
+#import the dataframe back in
+df = pd.read_csv("/Users/JeremyNey/Desktop/Web_Development/Test/utr.csv", names = ['Date', 'Tweets', 'Source','Likes','Retweets','Coordinates' ])
+
+#clean up the coordinate data
+df['Coordinates'] = df['Coordinates'].str.replace("{u'type': u'Point', u'coordinates':", '')
+df['Coordinates'] = df['Coordinates'].str.replace("[", '')
+df['Coordinates'] = df['Coordinates'].str.replace("]}", '')
+df['Coordinates']= df['Coordinates'].str.replace(' ','')
+df['lat'], df['long']= df['Coordinates'].str.split(',', 1).str
+
+
+df['lat'].convert_objects(convert_numeric=True)
+df['long'].convert_objects(convert_numeric=True)
+
+
+
+#clean tweets and analyze sentiment
+df['Clean_tweet'] = np.array([ clean_tweet(tweet) for tweet in df['Tweets'] ])
+df['SA'] = np.array([ analize_sentiment(tweet) for tweet in df['Clean_tweet'] ])
+
+pos_tweets = [ tweet for index, tweet in enumerate(df['Clean_tweet']) if df['SA'][index] > 0]
+neu_tweets = [ tweet for index, tweet in enumerate(df['Clean_tweet']) if df['SA'][index] == 0]
+neg_tweets = [ tweet for index, tweet in enumerate(df['Clean_tweet']) if df['SA'][index] < 0]
+
+print("Percentage of positive tweets: {}%".format(len(pos_tweets)*100/len(df['Clean_tweet'])))
+print("Percentage of neutral tweets: {}%".format(len(neu_tweets)*100/len(df['Clean_tweet'])))
+print("Percentage of negative tweets: {}%".format(len(neg_tweets)*100/len(df['Clean_tweet'])))
+
+##############
+##############
+
+
