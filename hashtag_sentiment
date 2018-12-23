@@ -5,8 +5,6 @@ Created on Sat Aug 18 18:16:29 2018
 
 @author: JeremyNey
 """
-#http://ipullrank.com/step-step-twitter-sentiment-analysis-visualizing-united-airlines-pr-crisis/
-
 import tweepy
 import pandas as pd
 import csv
@@ -49,7 +47,7 @@ def analize_sentiment(tweet):
 csvFile = open('/Users/JeremyNey/Desktop/Web_Development/Test/utr.csv', 'a')
 csvWriter = csv.writer(csvFile)
 
-for tweet in tweepy.Cursor(api.search,q="#UnitetheRight",count=100,
+for tweet in tweepy.Cursor(api.search,q="#Trump",count=100,
                            #result_type='popular',
                            lang="en",
                            since="2018-05-03").items():
